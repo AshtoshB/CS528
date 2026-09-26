@@ -4,6 +4,7 @@ import google.auth
 
 outgoing = {}
 incoming = {}
+ranks = {}
 
 def get_link(origin, code):
     #print("here")    
@@ -115,16 +116,25 @@ def quantiles():
     return {"out": [q1_out, q2_out, q3_out, q4_out, q5_out], "in": [q1_in, q2_in, q3_in, q4_in, q5_in]}
 
 
+
 def page_rank(x):
-    Px = incoming[x]
-    Cx = outgoing[x]
+
+    PR = incoming[x]
 
     pra = 0
-    for page in Px:
-        pra = page_rank(page)/Cx
+    for T in PR:
+        CT = outgoing[T]
+        pra += ranks[T]/len(CT)
 
+    prev_rank = ranks[x]
+    pra =  prev_rank * pra
 
-    return 0.15/120000 + 0.85 * pra
+    change = ((prev_rank - pra)/prev_rank) * 100 
+    
+    if change <= 0.5 and change >= -0.5:
+        return
+
+    ranks[x] = pra 
 
 def test():
     bucket_name = "assignment2_contents"
@@ -157,6 +167,7 @@ if __name__ == "__main__":
     for i in range(12000):
         outgoing[i] = []
         incoming[i] = []
+        ranks[i] = 0.15/12000 + 0.85
 
     test()
 
