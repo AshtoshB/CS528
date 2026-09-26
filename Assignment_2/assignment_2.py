@@ -117,7 +117,7 @@ def quantiles():
 
 
 
-def page_rank(x):
+def page_rank_helper(x):
 
     PR = incoming[x]
 
@@ -129,12 +129,28 @@ def page_rank(x):
     prev_rank = ranks[x]
     pra =  prev_rank * pra
 
-    change = ((prev_rank - pra)/prev_rank) * 100 
-    
-    if change <= 0.5 and change >= -0.5:
-        return
+    return pra 
 
-    ranks[x] = pra 
+def page_rank():
+
+    temp_rank = {}
+    not_in_threshold = True
+
+    while not_in_threshold:
+        not_in_threshold = False
+
+        for i in range(12000):
+            new_rank = page_rank_helper(i)
+            temp_rank[i] = 0.15/12000 + 0.85 * new_rank
+
+            old_rank = ranks[i]
+            change = ((old_rank-new_rank)/old_rank) * 100
+
+            if change > 0.5 or change < -0.5:
+                not_in_threshold = True
+
+       
+        ranks = temp_rank
 
 def test():
     bucket_name = "assignment2_contents"
@@ -167,7 +183,7 @@ if __name__ == "__main__":
     for i in range(12000):
         outgoing[i] = []
         incoming[i] = []
-        ranks[i] = 0.15/12000 + 0.85
+        ranks[i] = 1
 
     test()
 
