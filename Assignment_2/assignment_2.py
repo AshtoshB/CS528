@@ -6,6 +6,18 @@ outgoing = {}
 incoming = {}
 ranks = {}
 
+def initiate(origin=None, ref=None, page_rank=12000, fill = False):
+    if fill:
+        for i in range(page_rank):
+                outgoing[i] = []
+                incoming[i] = []
+                ranks[i] = 1 
+
+    if origin != None and ref != None:
+        outgoing[origin].append(ref)
+        incoming[ref].append(origin)
+
+
 def get_link(origin, code):
     #print("here")    
     if len(code) < 7:
@@ -22,26 +34,25 @@ def get_link(origin, code):
             ref += code[i]
 
         ref = int(ref)
-        outgoing[origin].append(ref)
-        incoming[ref].append(origin)        
+        initiate(origin=origin, ref=ref) 
         return
 
 
-def average():
+def average(incoming = incoming, outgoing = outgoing, page_range= 12000):
     total_outgoing = 0
     total_incoming = 0
 
-    for i in range(12000):
+    for i in range(page_range):
         total_outgoing += len(outgoing[i])
         total_incoming += len(incoming[i])
 
-    return {"out": total_outgoing/12000, "in": total_incoming/12000}
+    return {"out": total_outgoing/page_range, "in": total_incoming/page_range}
 
-def median():
+def median(incoming = incoming, outgoing = outgoing, page_range=12000):
     outgoing_counts = []
     incoming_counts = []
     
-    for i in range(12000):
+    for i in range(page_range):
         out_len = len(outgoing[i])
         in_len = len(incoming[i])
         outgoing_counts.append(out_len)
@@ -54,11 +65,11 @@ def median():
     incoming_median = sorted(incoming_counts)[mid_index]
     return {"out": outgoing_median, "in": incoming_median}
     
-def max():
+def max(incoming = incoming, outgoing = outgoing, page_range=12000):
     outgoign_max = 0
     incoming_max = 0
 
-    for i in range(12000):
+    for i in range(page_range):
         out_len = len(outgoing[i])
         in_len = len(incoming[i])
 
@@ -70,11 +81,11 @@ def max():
 
     return {"out": outgoign_max, "in": incoming_max }
 
-def min():
+def min(incoming = incoming, outgoing = outgoing, page_range=12000):
     outgoign_min = float("inf")
     incoming_min = float("inf")
 
-    for i in range(12000): 
+    for i in range(page_range): 
         out_len = len(outgoing[i])
         in_len = len(incoming[i])  
         if out_len < outgoign_min:
@@ -85,11 +96,11 @@ def min():
 
     return {"out": outgoign_min, "in": incoming_min }
 
-def quantiles():
+def quantiles(incoming = incoming, outgoing = outgoing, page_range=12000):
     outs = []
     ins = []
 
-    for i in range(12000):
+    for i in range(page_range):
         out_len = len(outgoing[i])
         in_len = len(incoming[i])  
        
@@ -117,7 +128,7 @@ def quantiles():
 
 
 
-def page_rank_helper(x):
+def page_rank_helper(x, incoming, outgoing, ranks):
 
     PR = incoming[x]
 
@@ -128,7 +139,7 @@ def page_rank_helper(x):
 
     return pra 
 
-def page_rank():
+def page_rank(incoming = incoming, outgoing = outgoing, page_range=12000, ranks = ranks):
 
     
     not_in_threshold = True
@@ -137,8 +148,8 @@ def page_rank():
         not_in_threshold = False
 
         temp_rank = {}
-        for i in range(12000):
-            new_rank = 0.15/12000 + 0.85 * page_rank_helper(i)
+        for i in range(page_range):
+            new_rank = 0.15/page_range + 0.85 * page_rank_helper(i, incoming, outgoing, ranks)
             temp_rank[i] = new_rank
 
             old_rank = ranks[i]
@@ -148,12 +159,12 @@ def page_rank():
                 not_in_threshold = True
 
        
-        ranks.update(temp_rank)
+        ranks = temp_rank
 
-    return
+    return ranks
 
 
-def page_rank_top_5():
+def page_rank_top_5(ranks = ranks):
     ranked = {}
 
     for i in range(5):
@@ -167,7 +178,7 @@ def page_rank_top_5():
             if curr_rank ==  - 1:
                 ranked[i] = rank
                 break 
-            
+
             curr_rank_value = ranks[curr_rank]
 
             if ranks[rank] > curr_rank_value:
@@ -211,11 +222,8 @@ def test():
 
 
 if __name__ == "__main__":
-    for i in range(12000):
-        outgoing[i] = []
-        incoming[i] = []
-        ranks[i] = 1
-
+    
+    initiate(fill=True)
     test()
 
     averages = average()
@@ -235,13 +243,18 @@ if __name__ == "__main__":
     print("Outgoing quantiles:", quant["out"])
     print("Incmoing quantiles:", quant["in"])
 
-    page_rank()
-    ranking = page_rank_top_5()
+    PageRank = page_rank()
+    ranking = page_rank_top_5(PageRank)
 
     for rank in ranking:
         true_rank = rank + 1
         page = ranking[rank]
-        score = ranks[page]
+        score = PageRank[page]
         print("PageRank", true_rank, "is:", page, "    With score:", score)
 
+
+    test_case1 = {1:[2], 2:[3], 3:[4], 4:[5], 5:[1]}
+    
+    test_case2 = {1:[2,3,4,5], 2:[1,3,4,5], 3:[1,2,4,5], 5:[1,2,3,4]}
+    test_case3 = {1:[1,2], 2:[1,]}
    
