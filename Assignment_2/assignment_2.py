@@ -126,22 +126,20 @@ def page_rank_helper(x):
         CT = outgoing[T]
         pra += ranks[T]/len(CT)
 
-    prev_rank = ranks[x]
-    pra =  prev_rank * pra
-
     return pra 
 
 def page_rank():
 
-    temp_rank = {}
+    
     not_in_threshold = True
 
     while not_in_threshold:
         not_in_threshold = False
 
+        temp_rank = {}
         for i in range(12000):
-            new_rank = page_rank_helper(i)
-            temp_rank[i] = 0.15/12000 + 0.85 * new_rank
+            new_rank = 0.15/12000 + 0.85 * page_rank_helper(i)
+            temp_rank[i] = new_rank
 
             old_rank = ranks[i]
             change = ((old_rank-new_rank)/old_rank) * 100
@@ -150,7 +148,39 @@ def page_rank():
                 not_in_threshold = True
 
        
-        ranks = temp_rank
+        ranks.update(temp_rank)
+
+    return
+
+
+def page_rank_top_5():
+    ranked = {}
+
+    for i in range(5):
+        ranked[i] = -1
+
+    for rank in ranks:
+
+        for i in range(5):
+            curr_rank = ranked[i]
+
+            if curr_rank ==  - 1:
+                ranked[i] = rank
+                break 
+            
+            curr_rank_value = ranks[curr_rank]
+
+            if ranks[rank] > curr_rank_value:
+                ranked[i] = rank
+                if i < 4:
+                    for j in range(i+1, 5):
+                        temp = ranked[j]
+                        ranked[j] = curr_rank
+                        curr_rank = temp
+
+                break
+
+    return ranked
 
 def test():
     bucket_name = "assignment2_contents"
@@ -163,6 +193,7 @@ def test():
         for i in range(12000):
             page_name = str(i)+".html"
             page = bucket.blob(page_name)
+            print("page", page_name)
             with page.open("r") as f:
                 for line in f:
                     if line[0] == "<":
@@ -203,3 +234,14 @@ if __name__ == "__main__":
     print("Incoming min:", mins["in"])
     print("Outgoing quantiles:", quant["out"])
     print("Incmoing quantiles:", quant["in"])
+
+    page_rank()
+    ranking = page_rank_top_5()
+
+    for rank in ranking:
+        true_rank = rank + 1
+        page = ranking[rank]
+        score = ranks[page]
+        print("PageRank", true_rank, "is:", page, "    With score:", score)
+
+   
