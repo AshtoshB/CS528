@@ -1,6 +1,5 @@
 from google.cloud import storage
-import google.auth
-
+import time
 
 outgoing = {}
 incoming = {}
@@ -16,7 +15,6 @@ def initiate(origin=None, ref=None, n=12000, fill = False):
             outgoing[i] = []
             incoming[i] = []
             ranks[i] = 1 
-
         
     if origin != None and ref != None:
         outgoing[origin].append(ref)
@@ -200,6 +198,50 @@ def page_rank_top_5():
 
     return ranked
 
+
+def bfs(start, n):
+    dist = {start: 0}
+    q = [start]
+    head = 0
+
+    while head < len(q):
+        u = q[head]
+        head += 1
+
+        for v in outgoing[u]:
+            if v not in dist:
+                dist[v] = dist[u] + 1
+                q.append(v)
+
+        if len(dist) == n:
+            break
+
+    return dist
+
+
+def page_centrality(n=12000):
+    best_page = -1
+    best_score = -1
+
+    for page in range(n):
+        dist = bfs(page, n)
+        
+        score = 0
+
+        if len(dist) >= n:
+            total = 0
+            for other in dist:
+                total += dist[other]
+
+            score = (n-1)/total
+
+        if score > best_score:
+            best_score = score 
+            best_page = page
+
+    return {"page": best_page, "score": best_score} 
+
+
 def cloud_initiate():
     bucket_name = "assignment2_contents"
 
@@ -211,7 +253,7 @@ def cloud_initiate():
         for i in range(12000):
             page_name = str(i)+".html"
             page = bucket.blob(page_name)
-            print("page", page_name)
+            #print("page", page_name)
             with page.open("r") as f:
                 for line in f:
                     if line[0] == "<":
@@ -243,20 +285,30 @@ def test(outgoing):
     mn = min(n)
     page_rank(n)
     ranking = page_rank_top_5()
+    closeness = page_centrality(n)
 
-    return {"avg": avg, "mid": mid, "quant": quant, "max": mx, "min": mn, "ranking": ranking, "ranks": ranks }
+    return {"avg": avg, "mid": mid, "quant": quant, "max": mx, "min": mn, "ranking": ranking, "ranks": ranks, "closeness": closeness }
 
 if __name__ == "__main__":
-    
+
     initiate(fill=True)
+
+    real_start = time.time()
+    
     cloud_initiate()
 
+    time_taken = time.time() - real_start
+    print ("Getting files and getting the incoming and outgoing links took:", time_taken, "seconds")
+
+    start = time.time()
     averages = average()
     medians = median()
     maxs = max()
     mins = min()
     quant = quantiles()
-
+    
+    print ("Calculating took:", time.time() - start, "seconds")
+    
     print("Outgoing average:", averages["out"])
     print("Incoming average:", averages["in"])
     print("Ougoing median:", medians["out"])
@@ -268,8 +320,12 @@ if __name__ == "__main__":
     print("Outgoing quantiles:", quant["out"])
     print("Incmoing quantiles:", quant["in"])
 
+    start = time.time()
     page_rank()
+    print ("PageRank took:", time.time() - start, "seconds")
+    
     ranking = page_rank_top_5()
+
 
     for rank in ranking:
         true_rank = rank + 1
@@ -278,4 +334,10 @@ if __name__ == "__main__":
         print("PageRank", true_rank, "is:", page, "    With score:", score)
 
 
-   
+    start = time.time()
+    best_centrality = page_centrality()
+
+    print("Closness took", time.time() - start, "seconds")
+    print("Best closness centrality page:", best_centrality["page"], "  With score:", best_centrality["score"])
+
+    print("Total time:", time.time()-real_start, "seconds")
